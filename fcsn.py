@@ -87,13 +87,14 @@ class FCSN(nn.Module):
             ('relu8', nn.ReLU(inplace=True)),
             ]))
 
-        self.score_pool4 = nn.Conv1d(2048, n_class, 1)
+        self.conv_pool4 = nn.Conv1d(2048, n_class, 1)
+        self.bn_pool4 = nn.BatchNorm1d(n_class)
 
         self.deconv1 = nn.ConvTranspose1d(n_class, n_class, 4, padding=1, stride=2, bias=False)
-
         self.deconv2 = nn.ConvTranspose1d(n_class, n_class, 16, stride=16, bias=False)
 
     def forward(self, x):
+
         h = x
         h = self.conv1(h)
         h = self.conv2(h)
@@ -109,12 +110,14 @@ class FCSN(nn.Module):
         h = self.deconv1(h)
         upscore2 = h
 
-        h = self.score_pool4(pool4)
-        score_pool4c = h
+        h = self.conv_pool4(pool4)
+        h = self.bn_pool4(h)
+        score_pool4 = h
 
-        h = upscore2 + score_pool4c
+        h = upscore2 + score_pool4
 
         h = self.deconv2(h)
+
         return h
 
 
