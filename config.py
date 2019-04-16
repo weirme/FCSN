@@ -10,10 +10,10 @@ class Config():
         super(Config, self).__init__()
 
         # Path
-        self.data_path = '/Users/sameal/Downloads/Datasets/TVSum/datasets/eccv16_dataset_tvsum_google_pool5.h5'
-        self.save_dir = '../save_dir'
-        self.score_dir = '../score_dir'
-        self.log_dir = '../log_dir'
+        self.data_path = '/Users/sameal/Downloads/Datasets/TVSum/fcsn_dataset.h5'
+        self.save_dir = 'save_dir'
+        self.score_dir = 'score_dir'
+        self.log_dir = 'log_dir'
 
         # Model
         self.mode = 'train'

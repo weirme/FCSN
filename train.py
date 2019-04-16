@@ -24,6 +24,7 @@ class Solver(object):
 
         # model
         self.model = FCSN(self.config.n_class) # .cuda()
+        self.model.eval()
 
         # optimizer
         if self.config.mode == 'train':
@@ -31,57 +32,48 @@ class Solver(object):
             self.model.train()
             self.writer = TensorboardWriter(self.config.log_dir)
 
+        # weight
+        self.tvsum_weight = torch.tensor([0.55989996, 4.67362574])
+
     @staticmethod
     def freeze_model(module):
         for p in module.parameters():
             p.requires_grad = False
 
     @staticmethod
-    def sum_loss(pred_score, gt_labels):
+    def sum_loss(pred_score, gt_labels, weight=None):
         n_batch, n_class, n_frame = pred_score.shape
-        sum_loss = 0
-        for score_i, labels_i in zip(pred_score, gt_labels):
-            freq = torch.empty((n_class, ))
-            for i in range(n_class):
-                freq[i] = (labels_i == i).sum()
-            median_freq = freq.mean()
-            w = median_freq / freq
 
-            loss = 0
-            # pdb.set_trace()
-            for t in range(n_frame):
-                exp_sum = torch.exp(score_i[:, t]).sum()
-                label_t = labels_i[t].int().item()
-                exp_ct = torch.exp(score_i[label_t, t])
-                loss += w[label_t] * torch.log(exp_ct / exp_sum)
-            loss *= -1/n_frame
-            sum_loss += loss
-        sum_loss /= n_batch
-        return sum_loss
+        log_p = torch.log_softmax(pred_score, dim=1).reshape(-1, n_class)
+        gt_labels = gt_labels.reshape(-1)
+        criterion = torch.nn.NLLLoss(weight)
+        loss = criterion(log_p, gt_labels)
+
+        return loss
 
     def train(self):
         for epoch_i in trange(self.config.n_epochs, desc='Epoch', ncols=80):
             sum_loss_history = []
 
-            for batch_i, (features, labels, _) in enumerate(tqdm(self.train_loader, desc='Batch', ncols=80, leave=False)):
+            for batch_i, (feature, label, _) in enumerate(tqdm(self.train_loader, desc='Batch', ncols=80,
+                                                                leave=False)):
 
                 # [batch_size, 1024, seq_len]
                 # => cuda
-                features = Variable(features) # .cuda()
-
+                feature.requires_grad_() # .cuda()
                 # ---- Train ---- #
-                pred_score = self.model(features)
+                pred_score = self.model(feature)
 
                 # pdb.set_trace()
 
-                # pred_label = torch.argmax(pred_score, dim=1).float()
-                loss = Variable(self.sum_loss(pred_score, labels), requires_grad=True)
+                # pred_label = torch.argmax(pred_score, dim=1)
+                # loss = torch.nn.MSELoss(pred_label, label)
+                loss = self.sum_loss(pred_score, label, self.tvsum_weight)
                 loss.backward()
 
-                if (batch_i+1) % 5 == 0:
-                    self.optimizer.step()
-                    self.optimizer.zero_grad()
-                    sum_loss_history.append(loss)
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                sum_loss_history.append(loss)
 
             # pdb.set_trace()
             mean_loss = torch.stack(sum_loss_history).mean().item()
@@ -121,6 +113,6 @@ if __name__ == '__main__':
     from data_loader import get_loader
     train_config = Config()
     test_config = Config(mode='test')
-    train_loader, test_loader = get_loader(train_config.data_path)
+    train_loader, test_loader = get_loader(train_config.data_path, batch_size=5)
     solver = Solver(train_config, train_loader, test_loader)
     solver.train()
