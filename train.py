@@ -23,7 +23,7 @@ class Solver(object):
         self.test_loader = test_loader
 
         # model
-        self.model = FCSN(self.config.n_class) # .cuda()
+        self.model = FCSN(self.config.n_class)
         self.model.eval()
 
         # optimizer
@@ -34,6 +34,10 @@ class Solver(object):
 
         # weight
         self.tvsum_weight = torch.tensor([0.55989996, 4.67362574])
+
+        if self.config.gpu:
+            self.model = self.model.cuda()
+            self.tvsum_weight = self.tvsum_weight.cuda()
 
     @staticmethod
     def freeze_model(module):
@@ -59,8 +63,12 @@ class Solver(object):
                                                                 leave=False)):
 
                 # [batch_size, 1024, seq_len]
+                feature.requires_grad_()
                 # => cuda
-                feature.requires_grad_() # .cuda()
+                if self.config.gpu:
+                    feature = feature.cuda()
+                    label = label.cuda()
+
                 # ---- Train ---- #
                 pred_score = self.model(feature)
 
@@ -92,10 +100,11 @@ class Solver(object):
         self.model.eval()
         out_dict = {}
 
-        for features, _, idx in tqdm(self.test_loader, desc='Evaluate', ncols=80, leave=False):
+        for feature, _, idx in tqdm(self.test_loader, desc='Evaluate', ncols=80, leave=False):
 
-            features = Variable(features) # .cuda()
-            pred_score = self.model(features.unsqueeze(0))
+            if self.config.gpu:
+                feature = feature.cuda()
+            pred_score = self.model(feature.unsqueeze(0))
             pred_label = torch.argmax(pred_score, dim=1).squeeze(0).type(dtype=torch.int)
             pred_label = np.array(pred_label.cpu().data).tolist()
 
@@ -113,6 +122,6 @@ if __name__ == '__main__':
     from data_loader import get_loader
     train_config = Config()
     test_config = Config(mode='test')
-    train_loader, test_loader = get_loader(train_config.data_path, batch_size=5)
+    train_loader, test_loader = get_loader(train_config.data_path, batch_size=train_config.batch_size)
     solver = Solver(train_config, train_loader, test_loader)
     solver.train()
