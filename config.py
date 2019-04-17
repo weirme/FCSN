@@ -7,17 +7,16 @@ class Config():
     """Config class"""
     def __init__(self, **kwargs):
 
-        super(Config, self).__init__()
-
         # Path
-        self.data_path = '/Users/sameal/Downloads/Datasets/TVSum/datasets/eccv16_dataset_tvsum_google_pool5.h5'
-        self.save_dir = '../save_dir'
-        self.score_dir = '../score_dir'
-        self.log_dir = '../log_dir'
+        self.data_path = 'fcsn_dataset.h5'
+        self.save_dir = 'save_dir'
+        self.score_dir = 'score_dir'
+        self.log_dir = 'log_dir'
 
         # Model
         self.mode = 'train'
-        self.n_epochs = 50
+        self.gpu = False
+        self.n_epochs = 200
         self.n_class = 2
         self.lr = 1e-3
         self.batch_size = 5
