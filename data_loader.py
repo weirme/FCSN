@@ -29,6 +29,6 @@ def get_loader(path, batch_size=5):
 
 
 if __name__ == '__main__':
-    loader = get_loader('/Users/sameal/Downloads/Datasets/TVSum/fcsn_dataset.h5')
+    loader = get_loader('fcsn_dataset.h5')
     import ipdb
     ipdb.set_trace()

@@ -89,7 +89,7 @@ class Solver(object):
             tqdm.write(f'sum loss: {mean_loss:.3f}')
             self.writer.update_loss(mean_loss, epoch_i, 'loss')
 
-            if (epoch_i+1) % 5 == 0:
+            if (epoch_i+1) % 10 == 0:
                 ckpt_path = self.config.save_dir + f'/epoch-{epoch_i}.pkl'
                 tqdm.write(f'Save parameters at {ckpt_path}')
                 torch.save(self.model.state_dict(), ckpt_path)

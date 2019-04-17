@@ -7,10 +7,8 @@ class Config():
     """Config class"""
     def __init__(self, **kwargs):
 
-        super(Config, self).__init__()
-
         # Path
-        self.data_path = '/Users/sameal/Downloads/Datasets/TVSum/fcsn_dataset.h5'
+        self.data_path = 'fcsn_dataset.h5'
         self.save_dir = 'save_dir'
         self.score_dir = 'score_dir'
         self.log_dir = 'log_dir'
