@@ -47,8 +47,7 @@ class Solver(object):
         for epoch_i in trange(self.config.n_epochs, desc='Epoch', ncols=80):
             sum_loss_history = []
 
-            for batch_i, (feature, label, _) in enumerate(tqdm(self.train_loader, desc='Batch', ncols=80,
-                                                                leave=False)):
+            for batch_i, (feature, label, _) in enumerate(tqdm(self.train_loader, desc='Batch', ncols=80, leave=False)):
 
                 # [batch_size, 1024, seq_len]
                 feature.requires_grad_()
