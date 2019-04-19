@@ -16,7 +16,7 @@ class Config():
         # Model
         self.mode = 'train'
         self.gpu = False
-        self.n_epochs = 200
+        self.n_epochs = 50
         self.n_class = 2
         self.lr = 1e-3
         self.batch_size = 5
