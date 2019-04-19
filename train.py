@@ -2,16 +2,12 @@
 
 import torch
 import torch.optim as optim
-from torch.autograd import Variable
-
+from tensorboardX import SummaryWriter
 import numpy as np
 import json
 from tqdm import tqdm, trange
 
 from fcsn import FCSN
-from utils import TensorboardWriter
-
-import pdb
 
 
 class Solver(object):
@@ -24,13 +20,11 @@ class Solver(object):
 
         # model
         self.model = FCSN(self.config.n_class)
-        self.model.eval()
 
         # optimizer
         if self.config.mode == 'train':
             self.optimizer = optim.SGD(self.model.parameters(), lr=config.lr, momentum=0.9)
             self.model.train()
-            self.writer = TensorboardWriter(self.config.log_dir)
 
         # weight
         self.tvsum_weight = torch.tensor([0.55989996, 4.67362574])
@@ -40,22 +34,16 @@ class Solver(object):
             self.tvsum_weight = self.tvsum_weight.cuda()
 
     @staticmethod
-    def freeze_model(module):
-        for p in module.parameters():
-            p.requires_grad = False
-
-    @staticmethod
     def sum_loss(pred_score, gt_labels, weight=None):
         n_batch, n_class, n_frame = pred_score.shape
-
         log_p = torch.log_softmax(pred_score, dim=1).reshape(-1, n_class)
         gt_labels = gt_labels.reshape(-1)
         criterion = torch.nn.NLLLoss(weight)
         loss = criterion(log_p, gt_labels)
-
         return loss
 
     def train(self):
+        writer = SummaryWriter()
         for epoch_i in trange(self.config.n_epochs, desc='Epoch', ncols=80):
             sum_loss_history = []
 
@@ -72,8 +60,6 @@ class Solver(object):
                 # ---- Train ---- #
                 pred_score = self.model(feature)
 
-                # pdb.set_trace()
-
                 # pred_label = torch.argmax(pred_score, dim=1)
                 # loss = torch.nn.MSELoss(pred_label, label)
                 loss = self.sum_loss(pred_score, label, self.tvsum_weight)
@@ -83,11 +69,10 @@ class Solver(object):
                 self.optimizer.zero_grad()
                 sum_loss_history.append(loss)
 
-            # pdb.set_trace()
             mean_loss = torch.stack(sum_loss_history).mean().item()
             tqdm.write(f'\nEpoch {epoch_i}')
             tqdm.write(f'sum loss: {mean_loss:.3f}')
-            self.writer.update_loss(mean_loss, epoch_i, 'loss')
+            writer.add_scalar('Loss', mean_loss, epoch_i)
 
             if (epoch_i+1) % 10 == 0:
                 ckpt_path = self.config.save_dir + f'/epoch-{epoch_i}.pkl'
@@ -111,7 +96,6 @@ class Solver(object):
             out_dict[idx.item()] = pred_label
 
         score_save_path = self.config.score_dir + f'/epoch-{epoch_i}.json'
-        # pdb.set_trace()
         with open(score_save_path, 'w') as f:
             tqdm.write(f'Saving score at {str(score_save_path)}.')
             json.dump(out_dict, f)
