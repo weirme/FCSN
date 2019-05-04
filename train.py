@@ -23,8 +23,8 @@ class Solver(object):
 
         # optimizer
         if self.config.mode == 'train':
-            # self.optimizer = optim.Adam(self.model.parameters())
-            self.optimizer = optim.SGD(self.model.parameters(), lr=config.lr, momentum=0.9)
+            self.optimizer = optim.Adam(self.model.parameters())
+            # self.optimizer = optim.SGD(self.model.parameters(), lr=config.lr, momentum=0.9)
             self.model.train()
 
         # weight
