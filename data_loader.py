@@ -16,7 +16,7 @@ class VideoData(object):
         
     def __getitem__(self, index):
         index += 1
-        video = self.data_file['video_'+str(index.item())]
+        video = self.data_file['video_'+str(index)]
         feature = torch.tensor(video['feature'][()]).reshape(1024, -1)
         label = torch.tensor(video['label'][()], dtype=torch.long)
         return feature, label, index
