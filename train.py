@@ -5,6 +5,7 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 import numpy as np
 import json
+import os
 from tqdm import tqdm, trange
 
 from fcsn import FCSN
@@ -75,6 +76,10 @@ class Solver(object):
             writer.add_scalar('Loss', mean_loss, epoch_i)
 
             if (epoch_i+1) % 10 == 0:
+
+                if not os.path.exists(self.config.save_dir):
+                    os.mkdir(self.config.save_dir)
+
                 ckpt_path = self.config.save_dir + f'/epoch-{epoch_i}.pkl'
                 tqdm.write(f'Save parameters at {ckpt_path}')
                 torch.save(self.model.state_dict(), ckpt_path)
@@ -93,7 +98,10 @@ class Solver(object):
             pred_label = torch.argmax(pred_score, dim=1).squeeze(0).type(dtype=torch.int)
             pred_label = np.array(pred_label.cpu().data).tolist()
 
-            out_dict[idx.item()] = pred_label
+            out_dict[idx] = pred_label
+
+        if not os.path.exists(self.config.score_dir):
+            os.mkdir(self.config.score_dir)
 
         score_save_path = self.config.score_dir + f'/epoch-{epoch_i}.json'
         with open(score_save_path, 'w') as f:
