@@ -71,8 +71,8 @@ class Solver(object):
                 sum_loss_history.append(loss)
 
             mean_loss = torch.stack(sum_loss_history).mean().item()
-            tqdm.write(f'\nEpoch {epoch_i}')
-            tqdm.write(f'sum loss: {mean_loss:.3f}')
+            tqdm.write('\nEpoch {}'.format(epoch_i))
+            tqdm.write('sum loss: {:.3f}'.format(mean_loss))
             writer.add_scalar('Loss', mean_loss, epoch_i)
 
             if (epoch_i+1) % 10 == 0:
@@ -80,8 +80,8 @@ class Solver(object):
                 if not os.path.exists(self.config.save_dir):
                     os.mkdir(self.config.save_dir)
 
-                ckpt_path = self.config.save_dir + f'/epoch-{epoch_i}.pkl'
-                tqdm.write(f'Save parameters at {ckpt_path}')
+                ckpt_path = self.config.save_dir + '/epoch-{}.pkl'.format(epoch_i)
+                tqdm.write('Save parameters at {}'.format(ckpt_path))
                 torch.save(self.model.state_dict(), ckpt_path)
                 self.evaluate(epoch_i)
                 self.model.train()
@@ -103,9 +103,9 @@ class Solver(object):
         if not os.path.exists(self.config.score_dir):
             os.mkdir(self.config.score_dir)
 
-        score_save_path = self.config.score_dir + f'/epoch-{epoch_i}.json'
+        score_save_path = self.config.score_dir + '/epoch-{}.json'.format(epoch_i)
         with open(score_save_path, 'w') as f:
-            tqdm.write(f'Saving score at {str(score_save_path)}.')
+            tqdm.write('Saving score at {}.'.format(str(score_save_path)))
             json.dump(out_dict, f)
 
 
