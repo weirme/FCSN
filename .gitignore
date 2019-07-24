@@ -1,0 +1,7 @@
+.vscode
+*.h5
+*.pth
+log_dir
+save_dir
+score_dir
+*.pyc

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import torch
 from torch.utils.data import DataLoader
 
@@ -24,12 +22,10 @@ class VideoData(object):
 
 def get_loader(path, batch_size=5):
     dataset = VideoData(path)
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [9*len(dataset)//10, len(dataset)//10])
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [len(dataset) - len(dataset)//10, len(dataset)//10])
     train_loader = DataLoader(train_dataset, batch_size=batch_size)
     return train_loader, test_dataset
 
 
 if __name__ == '__main__':
     loader = get_loader('fcsn_dataset.h5')
-    import ipdb
-    ipdb.set_trace()

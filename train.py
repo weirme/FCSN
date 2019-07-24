@@ -1,23 +1,24 @@
-# -*- coding: utf-8 -*-
-
 import torch
 import torch.optim as optim
+
 from tensorboardX import SummaryWriter
 import numpy as np
 import json
 import os
 from tqdm import tqdm, trange
+import h5py
+from prettytable import PrettyTable
 
 from fcsn import FCSN
-
+import tools
 
 class Solver(object):
     """Class that Builds, Trains FCSN model"""
 
-    def __init__(self, config=None, train_loader=None, test_loader=None):
+    def __init__(self, config=None, train_loader=None, test_dataset=None):
         self.config = config
         self.train_loader = train_loader
-        self.test_loader = test_loader
+        self.test_dataset = test_dataset
 
         # model
         self.model = FCSN(self.config.n_class)
@@ -25,15 +26,20 @@ class Solver(object):
         # optimizer
         if self.config.mode == 'train':
             self.optimizer = optim.Adam(self.model.parameters())
-            # self.optimizer = optim.SGD(self.model.parameters(), lr=config.lr, momentum=0.9)
+            # self.optimizer = optim.SGD(self.model.parameters(), lr=config.lr, momentum=self.config.momentum)
             self.model.train()
-
-        # weight
-        self.tvsum_weight = torch.tensor([0.55989996, 4.67362574])
 
         if self.config.gpu:
             self.model = self.model.cuda()
-            self.tvsum_weight = self.tvsum_weight.cuda()
+
+        if not os.path.exists(self.config.score_dir):
+            os.mkdir(self.config.score_dir)
+
+        if not os.path.exists(self.config.save_dir):
+            os.mkdir(self.config.save_dir)
+
+        if not os.path.exists(self.config.log_dir):
+            os.mkdir(self.config.log_dir)
 
     @staticmethod
     def sum_loss(pred_score, gt_labels, weight=None):
@@ -45,11 +51,12 @@ class Solver(object):
         return loss
 
     def train(self):
-        writer = SummaryWriter()
-        for epoch_i in trange(self.config.n_epochs, desc='Epoch', ncols=80):
+        writer = SummaryWriter(log_dir=self.config.log_dir)
+        t = trange(self.config.n_epochs, desc='Epoch', ncols=80)
+        for epoch_i in t:
             sum_loss_history = []
 
-            for batch_i, (feature, label, _) in enumerate(tqdm(self.train_loader, desc='Batch', ncols=80, leave=False)):
+            for batch_i, (feature, label,  _) in enumerate(tqdm(self.train_loader, desc='Batch', ncols=80, leave=False)):
 
                 # [batch_size, 1024, seq_len]
                 feature.requires_grad_()
@@ -61,9 +68,11 @@ class Solver(object):
                 # ---- Train ---- #
                 pred_score = self.model(feature)
 
-                # pred_label = torch.argmax(pred_score, dim=1)
-                # loss = torch.nn.MSELoss(pred_label, label)
-                loss = self.sum_loss(pred_score, label, self.tvsum_weight)
+                label_1 = label.sum() / label.shape[0]
+                label_0 = label.shape[1] - label_1
+                weight = torch.tensor([label_1, label_0], dtype=torch.float)
+
+                loss = self.sum_loss(pred_score, label, weight)
                 loss.backward()
 
                 self.optimizer.step()
@@ -71,15 +80,10 @@ class Solver(object):
                 sum_loss_history.append(loss)
 
             mean_loss = torch.stack(sum_loss_history).mean().item()
-            tqdm.write('\nEpoch {}'.format(epoch_i))
-            tqdm.write('sum loss: {:.3f}'.format(mean_loss))
+            t.set_postfix(loss=mean_loss)
             writer.add_scalar('Loss', mean_loss, epoch_i)
 
-            if (epoch_i+1) % 10 == 0:
-
-                if not os.path.exists(self.config.save_dir):
-                    os.mkdir(self.config.save_dir)
-
+            if (epoch_i+1) % 5 == 0:
                 ckpt_path = self.config.save_dir + '/epoch-{}.pkl'.format(epoch_i)
                 tqdm.write('Save parameters at {}'.format(ckpt_path))
                 torch.save(self.model.state_dict(), ckpt_path)
@@ -89,24 +93,34 @@ class Solver(object):
     def evaluate(self, epoch_i):
         self.model.eval()
         out_dict = {}
+        eval_arr = []
+        table = PrettyTable()
+        table.title = 'F-score of epoch {}'.format(epoch_i)
+        table.field_names = ['ID', 'Precision', 'Recall', 'F-score']
+        table.float_format = '1.3'
 
-        for feature, _, idx in tqdm(self.test_loader, desc='Evaluate', ncols=80, leave=False):
+        with h5py.File(self.config.data_path) as data_file:
+            for feature, label, idx in tqdm(self.test_dataset, desc='Evaluate', ncols=80, leave=False):
+                if self.config.gpu:
+                    feature = feature.cuda()
+                pred_score = self.model(feature.unsqueeze(0)).squeeze(0)
+                pred_score = torch.softmax(pred_score, dim=0)[1]
+                video_info = data_file['video_'+str(idx)]
+                eval_res = tools.eval_single(video_info, pred_score)
 
-            if self.config.gpu:
-                feature = feature.cuda()
-            pred_score = self.model(feature.unsqueeze(0))
-            pred_label = torch.argmax(pred_score, dim=1).squeeze(0).type(dtype=torch.int)
-            pred_label = np.array(pred_label.cpu().data).tolist()
+                eval_arr.append(eval_res)
+                table.add_row([idx] + eval_res)
 
-            out_dict[idx] = pred_label
-
-        if not os.path.exists(self.config.score_dir):
-            os.mkdir(self.config.score_dir)
-
+                pred_score = np.array(pred_score.cpu().data).tolist()
+                out_dict[idx] = pred_score
+        
         score_save_path = self.config.score_dir + '/epoch-{}.json'.format(epoch_i)
         with open(score_save_path, 'w') as f:
             tqdm.write('Saving score at {}.'.format(str(score_save_path)))
             json.dump(out_dict, f)
+        eval_mean = np.mean(eval_arr, axis=0).tolist()
+        table.add_row(['mean']+eval_mean)
+        tqdm.write(str(table))
 
 
 if __name__ == '__main__':
@@ -114,6 +128,6 @@ if __name__ == '__main__':
     from data_loader import get_loader
     train_config = Config()
     test_config = Config(mode='test')
-    train_loader, test_loader = get_loader(train_config.data_path, batch_size=train_config.batch_size)
-    solver = Solver(train_config, train_loader, test_loader)
+    train_loader, test_dataset = get_loader(train_config.data_path, batch_size=train_config.batch_size)
+    solver = Solver(train_config, train_loader, test_dataset)
     solver.train()
