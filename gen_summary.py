@@ -11,7 +11,7 @@ import seaborn as sns
 
 parser = argparse.ArgumentParser(description='Generate keyshots, keyframes and score bar.')
 parser.add_argument('--h5_path', type=str, help='path to hdf5 file that contains information of a dataset.', default='../data/fcsn_tvsum.h5')
-parser.add_argument('-j', '--json_path', type=str, help='path to json file that stores pred score output by model, it should be saved in score_dir.', default='score_dir/epoch-0.json')
+parser.add_argument('-j', '--json_path', type=str, help='path to json file that stores pred score output by model, it should be saved in score_dir.', default='score_dir/epoch-49.json')
 parser.add_argument('-r', '--data_root', type=str, help='path to directory of original dataset.', default='../data/TVSum')
 parser.add_argument('-s', '--save_dir', type=str, help='path to directory where generating results should be saved.', default='Results')
 parser.add_argument('-b', '--bar', action='store_true', help='whether to plot score bar.')
@@ -99,11 +99,11 @@ def gen_summary():
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
-    # for id in ids:
-    #     os.mkdir(os.path.join(save_dir, id))
-    #     get_keys(id)
+    for id in ids:
+        os.mkdir(os.path.join(save_dir, id))
+        get_keys(id)
     
-    if not bar:
+    if bar:
         plot_bar()
 
 
