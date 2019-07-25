@@ -73,6 +73,9 @@ class Solver(object):
                 label_0 = label.shape[1] - label_1
                 weight = torch.tensor([label_1, label_0], dtype=torch.float)
 
+                if self.config.gpu:
+                    weight = weight.cuda()
+
                 loss = self.sum_loss(pred_score, label, weight)
                 loss.backward()
 
@@ -84,7 +87,7 @@ class Solver(object):
             t.set_postfix(loss=mean_loss)
             writer.add_scalar('Loss', mean_loss, epoch_i)
 
-            if (epoch_i+1) % 1 == 0:
+            if (epoch_i+1) % 5 == 0:
                 ckpt_path = self.config.save_dir + '/epoch-{}.pkl'.format(epoch_i)
                 tqdm.write('Save parameters at {}'.format(ckpt_path))
                 torch.save(self.model.state_dict(), ckpt_path)
