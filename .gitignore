@@ -4,4 +4,5 @@
 log_dir
 save_dir
 score_dir
+Results
 *.pyc

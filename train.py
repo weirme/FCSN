@@ -12,6 +12,7 @@ from prettytable import PrettyTable
 from fcsn import FCSN
 import eval
 
+
 class Solver(object):
     """Class that Builds, Trains FCSN model"""
 
@@ -83,7 +84,7 @@ class Solver(object):
             t.set_postfix(loss=mean_loss)
             writer.add_scalar('Loss', mean_loss, epoch_i)
 
-            if (epoch_i+1) % 5 == 0:
+            if (epoch_i+1) % 1 == 0:
                 ckpt_path = self.config.save_dir + '/epoch-{}.pkl'.format(epoch_i)
                 tqdm.write('Save parameters at {}'.format(ckpt_path))
                 torch.save(self.model.state_dict(), ckpt_path)
@@ -95,7 +96,7 @@ class Solver(object):
         out_dict = {}
         eval_arr = []
         table = PrettyTable()
-        table.title = 'F-score of epoch {}'.format(epoch_i)
+        table.title = 'Eval result of epoch {}'.format(epoch_i)
         table.field_names = ['ID', 'Precision', 'Recall', 'F-score']
         table.float_format = '1.3'
 
@@ -106,17 +107,22 @@ class Solver(object):
                 pred_score = self.model(feature.unsqueeze(0)).squeeze(0)
                 pred_score = torch.softmax(pred_score, dim=0)[1]
                 video_info = data_file['video_'+str(idx)]
-                eval_res = eval.eval_single(video_info, pred_score)
+                pred_score, pred_selected, pred_summary = eval.select_keyshots(video_info, pred_score)
+                true_summary_arr = video_info['user_summary'][()]
+                eval_res = [eval.eval_metrics(pred_summary, true_summary) for true_summary in true_summary_arr]
+                eval_res = np.mean(eval_res, axis=0).tolist()
 
                 eval_arr.append(eval_res)
                 table.add_row([idx] + eval_res)
 
-                pred_score = np.array(pred_score.cpu().data).tolist()
-                out_dict[idx] = pred_score
+                out_dict[idx] = {
+                    'pred_score': pred_score, 
+                    'pred_selected': pred_selected, 'pred_summary': pred_summary
+                    }
         
         score_save_path = self.config.score_dir + '/epoch-{}.json'.format(epoch_i)
         with open(score_save_path, 'w') as f:
-            tqdm.write('Saving score at {}.'.format(str(score_save_path)))
+            tqdm.write('Save score at {}'.format(str(score_save_path)))
             json.dump(out_dict, f)
         eval_mean = np.mean(eval_arr, axis=0).tolist()
         table.add_row(['mean']+eval_mean)

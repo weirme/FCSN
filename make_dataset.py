@@ -141,3 +141,6 @@ def make_dataset(video_dir, h5_path):
     
 if __name__ == '__main__':
     make_dataset(video_dir, h5_path)
+
+
+vsumm_data.close()
