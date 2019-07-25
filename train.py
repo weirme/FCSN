@@ -10,7 +10,7 @@ import h5py
 from prettytable import PrettyTable
 
 from fcsn import FCSN
-import tools
+import eval
 
 class Solver(object):
     """Class that Builds, Trains FCSN model"""
@@ -106,7 +106,7 @@ class Solver(object):
                 pred_score = self.model(feature.unsqueeze(0)).squeeze(0)
                 pred_score = torch.softmax(pred_score, dim=0)[1]
                 video_info = data_file['video_'+str(idx)]
-                eval_res = tools.eval_single(video_info, pred_score)
+                eval_res = eval.eval_single(video_info, pred_score)
 
                 eval_arr.append(eval_res)
                 table.add_row([idx] + eval_res)
