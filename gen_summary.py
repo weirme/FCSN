@@ -110,3 +110,6 @@ def gen_summary():
 if __name__ == '__main__':
     plt.switch_backend('agg')
     gen_summary()
+
+
+f_data.close()
