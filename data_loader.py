@@ -15,14 +15,14 @@ class VideoData(object):
     def __getitem__(self, index):
         index += 1
         video = self.data_file['video_'+str(index)]
-        feature = torch.tensor(video['feature'][()]).reshape(1024, -1)
+        feature = torch.tensor(video['feature'][()]).t()
         label = torch.tensor(video['label'][()], dtype=torch.long)
         return feature, label, index
     
 
 def get_loader(path, batch_size=5):
     dataset = VideoData(path)
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [len(dataset) - len(dataset)//10, len(dataset)//10])
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [len(dataset) - len(dataset) // 5, len(dataset) // 5])
     train_loader = DataLoader(train_dataset, batch_size=batch_size)
     return train_loader, test_dataset
 
