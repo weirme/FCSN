@@ -51,6 +51,7 @@ transform = transforms.Compose([
 
 
 net = models.googlenet(pretrained=True).float().cuda()
+net.eval()
 fea_net = nn.Sequential(*list(net.children())[:-2])
 
 
