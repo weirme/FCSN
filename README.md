@@ -16,9 +16,9 @@ A TVSum dataset (downsampled to 320 frames per video) preprocessed by `make_data
 | :-------: | :----------------------------: |
 | `length`  | scalar, number of video frames |
 | `feature` |       shape (320, 1024)        |
-|  `label`  |          shape (320, )          |
+|  `label`  |          shape (320, )         |
 | `change_points` | shape (n_segments, 2) <br>stores begin and end of each segment |
-| `n_frame_per_seg` | shape (n_segments) <br>number of frames in each segment |
+| `n_frame_per_seg` | shape (n_segments, ) <br>number of frames in each segment |
 | `user_summary` | shape (20, length) <br>summary from 20 users, each row is a binary vector |
 
 ## Train
@@ -42,7 +42,3 @@ python gen_summary.py --h5_path {your hdf5 dataset path} --json_path {json file 
 preview of score-bar (x-axis: frame index, y-axis: user's score, and columns in orange is selected keyshots):
 
 ![](src/Result-bar.png)
-
-## Problems
-
-When training on SumMe dataset made by `make_dataset.py`, the evaluation result is quite terrible. However, the same methods seems to be good on TVSum. Some problems still exists in my code, I would be grateful if you could find them out :)
